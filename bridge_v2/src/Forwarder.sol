@@ -9,8 +9,10 @@ import "./interface/IForwarder.sol";
 contract Forwarder is AccessControlEnumerable, Pausable, IForwarder {
     using Address for address;
 
-    bytes32 public constant FORWARDER_ADMIN_ROLE = keccak256("FORWARDER_ADMIN_ROLE");
-    bytes32 public constant TRANSPARENT_FORWARDER_ROLE = keccak256("TRANSPARENT_FORWARDER_ROLE");
+    bytes32 public constant FORWARDER_ADMIN_ROLE =
+        keccak256("FORWARDER_ADMIN_ROLE");
+    bytes32 public constant TRANSPARENT_FORWARDER_ROLE =
+        keccak256("TRANSPARENT_FORWARDER_ROLE");
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
     address public resultManager;
@@ -38,7 +40,9 @@ contract Forwarder is AccessControlEnumerable, Pausable, IForwarder {
     /// @notice Set result manager contract address
     /// @dev Allows admin to update result manager
     /// @param _resultManager new result manager address
-    function setResultManager(address _resultManager) external onlyRole(FORWARDER_ADMIN_ROLE) {
+    function setResultManager(
+        address _resultManager
+    ) external onlyRole(FORWARDER_ADMIN_ROLE) {
         if (_resultManager == address(0)) revert ZeroAddress();
         resultManager = _resultManager;
     }
@@ -46,21 +50,27 @@ contract Forwarder is AccessControlEnumerable, Pausable, IForwarder {
     /// @notice Set resultGetter Selector
     /// @dev Allows admin to set resultGetter Selector
     /// @param _resultGetterSelector resultGetter Selector
-    function setResultGetterSelector(bytes4 _resultGetterSelector) external onlyRole(FORWARDER_ADMIN_ROLE) {
+    function setResultGetterSelector(
+        bytes4 _resultGetterSelector
+    ) external onlyRole(FORWARDER_ADMIN_ROLE) {
         resultGetterSelector = _resultGetterSelector;
     }
 
     /// @notice Set update selector
     /// @dev Allows admin to set update selector
     /// @param _updateSelector update selector
-    function setUpdateSelector(bytes4 _updateSelector) external onlyRole(FORWARDER_ADMIN_ROLE) {
+    function setUpdateSelector(
+        bytes4 _updateSelector
+    ) external onlyRole(FORWARDER_ADMIN_ROLE) {
         updateSelector = _updateSelector;
     }
 
     /// @notice Set validate selector
     /// @dev Allows admin to set validate selector
     /// @param _validateSelector validate selector
-    function setValidateSelector(bytes4 _validateSelector) external onlyRole(FORWARDER_ADMIN_ROLE) {
+    function setValidateSelector(
+        bytes4 _validateSelector
+    ) external onlyRole(FORWARDER_ADMIN_ROLE) {
         validateSelector = _validateSelector;
     }
 
@@ -81,8 +91,16 @@ contract Forwarder is AccessControlEnumerable, Pausable, IForwarder {
      */
     function updateAndGetResult(
         bytes calldata data
-    ) external whenNotPaused checkSelector(updateSelector) onlyRole(TRANSPARENT_FORWARDER_ROLE) returns (uint256, int8, uint256) {
-        bytes memory returnData = resultManager.functionCall(abi.encodePacked(updateSelector, data));
+    )
+        external
+        whenNotPaused
+        checkSelector(updateSelector)
+        onlyRole(TRANSPARENT_FORWARDER_ROLE)
+        returns (uint256, int8, uint256)
+    {
+        bytes memory returnData = resultManager.functionCall(
+            abi.encodePacked(updateSelector, data)
+        );
         return abi.decode(returnData, (uint256, int8, uint256));
     }
 
@@ -93,8 +111,17 @@ contract Forwarder is AccessControlEnumerable, Pausable, IForwarder {
      */
     function getResult(
         bytes32 name
-    ) external view whenNotPaused checkSelector(resultGetterSelector) onlyRole(TRANSPARENT_FORWARDER_ROLE) returns (uint256, int8, uint256) {
-        bytes memory returnData = resultManager.functionStaticCall(abi.encodePacked(resultGetterSelector, name));
+    )
+        external
+        view
+        whenNotPaused
+        checkSelector(resultGetterSelector)
+        onlyRole(TRANSPARENT_FORWARDER_ROLE)
+        returns (uint256, int8, uint256)
+    {
+        bytes memory returnData = resultManager.functionStaticCall(
+            abi.encodePacked(resultGetterSelector, name)
+        );
         return abi.decode(returnData, (uint256, int8, uint256));
     }
 
@@ -105,8 +132,17 @@ contract Forwarder is AccessControlEnumerable, Pausable, IForwarder {
      */
     function validateResult(
         bytes calldata data
-    ) external view whenNotPaused checkSelector(validateSelector) onlyRole(TRANSPARENT_FORWARDER_ROLE) returns (bool, uint256, int8, uint256) {
-        bytes memory returnData = resultManager.functionStaticCall(abi.encodePacked(validateSelector, data));
+    )
+        external
+        view
+        whenNotPaused
+        checkSelector(validateSelector)
+        onlyRole(TRANSPARENT_FORWARDER_ROLE)
+        returns (bool, uint256, int8, uint256)
+    {
+        bytes memory returnData = resultManager.functionStaticCall(
+            abi.encodePacked(validateSelector, data)
+        );
         return abi.decode(returnData, (bool, uint256, int8, uint256));
     }
 }
