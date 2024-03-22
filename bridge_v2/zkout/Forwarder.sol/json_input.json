@@ -1,0 +1,38 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "src/Forwarder.sol": {
+      "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.0;\n\nimport \"@openzeppelin/contracts/utils/Address.sol\";\nimport \"@openzeppelin/contracts/access/AccessControlEnumerable.sol\";\nimport \"@openzeppelin/contracts/security/Pausable.sol\";\nimport \"./interface/IForwarder.sol\";\n\ncontract Forwarder is AccessControlEnumerable, Pausable, IForwarder {\n    using Address for address;\n\n    bytes32 public constant FORWARDER_ADMIN_ROLE = keccak256(\"FORWARDER_ADMIN_ROLE\");\n    bytes32 public constant TRANSPARENT_FORWARDER_ROLE = keccak256(\"TRANSPARENT_FORWARDER_ROLE\");\n    bytes32 public constant PAUSE_ROLE = keccak256(\"PAUSE_ROLE\");\n\n    address public resultManager;\n    bytes4 public resultGetterSelector;\n    bytes4 public updateSelector;\n    bytes4 public validateSelector;\n\n    event PermissionSet(address sender);\n    event PermissionRemoved(address sender);\n\n    error NoSelectorPresent();\n    error ZeroAddress();\n\n    modifier checkSelector(bytes4 selector) {\n        if (selector == bytes4(0)) revert NoSelectorPresent();\n        _;\n    }\n\n    constructor(address _resultManager) {\n        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);\n        if (_resultManager == address(0)) revert ZeroAddress();\n        resultManager = _resultManager;\n    }\n\n    /// @notice Set result manager contract address\n    /// @dev Allows admin to update result manager\n    /// @param _resultManager new result manager address\n    function setResultManager(address _resultManager) external onlyRole(FORWARDER_ADMIN_ROLE) {\n        if (_resultManager == address(0)) revert ZeroAddress();\n        resultManager = _resultManager;\n    }\n\n    /// @notice Set resultGetter Selector\n    /// @dev Allows admin to set resultGetter Selector\n    /// @param _resultGetterSelector resultGetter Selector\n    function setResultGetterSelector(bytes4 _resultGetterSelector) external onlyRole(FORWARDER_ADMIN_ROLE) {\n        resultGetterSelector = _resultGetterSelector;\n    }\n\n    /// @notice Set update selector\n    /// @dev Allows admin to set update selector\n    /// @param _updateSelector update selector\n    function setUpdateSelector(bytes4 _updateSelector) external onlyRole(FORWARDER_ADMIN_ROLE) {\n        updateSelector = _updateSelector;\n    }\n\n    /// @notice Set validate selector\n    /// @dev Allows admin to set validate selector\n    /// @param _validateSelector validate selector\n    function setValidateSelector(bytes4 _validateSelector) external onlyRole(FORWARDER_ADMIN_ROLE) {\n        validateSelector = _validateSelector;\n    }\n\n    /// @notice pause the contract\n    function pause() external onlyRole(PAUSE_ROLE) {\n        Pausable._pause();\n    }\n\n    /// @notice unpause the contract\n    function unpause() external onlyRole(PAUSE_ROLE) {\n        Pausable._unpause();\n    }\n\n    /**\n     * @notice Updates the result based on the provided data and returns the latest result\n     * @param data bytes data required to update the result\n     * @return result of the collection, its power and timestamp\n     */\n    function updateAndGetResult(\n        bytes calldata data\n    ) external whenNotPaused checkSelector(updateSelector) onlyRole(TRANSPARENT_FORWARDER_ROLE) returns (uint256, int8, uint256) {\n        bytes memory returnData = resultManager.functionCall(abi.encodePacked(updateSelector, data));\n        return abi.decode(returnData, (uint256, int8, uint256));\n    }\n\n    /**\n     * @dev using the hash of collection name, clients can query the result of that collection\n     * @param name bytes32 hash of the collection name\n     * @return result of the collection and its power\n     */\n    function getResult(\n        bytes32 name\n    ) external view whenNotPaused checkSelector(resultGetterSelector) onlyRole(TRANSPARENT_FORWARDER_ROLE) returns (uint256, int8, uint256) {\n        bytes memory returnData = resultManager.functionStaticCall(abi.encodePacked(resultGetterSelector, name));\n        return abi.decode(returnData, (uint256, int8, uint256));\n    }\n\n    /**\n     * @dev validates the result based on the provided data and returns the validity\n     * @param data bytes data required to validate the result\n     * @return validity of the result\n     */\n    function validateResult(\n        bytes calldata data\n    ) external view whenNotPaused checkSelector(validateSelector) onlyRole(TRANSPARENT_FORWARDER_ROLE) returns (bool, uint256, int8, uint256) {\n        bytes memory returnData = resultManager.functionStaticCall(abi.encodePacked(validateSelector, data));\n        return abi.decode(returnData, (bool, uint256, int8, uint256));\n    }\n}"
+    },
+    "src/interface/IForwarder.sol": {
+      "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.0;\n\ninterface IForwarder {\n    /**\n     * @notice Updates the result based on the provided data and returns the latest result\n     * @dev The data will be updated only if the result is valid and is newer than the previous result.\n     * Updation will be done by the clients, though once the result is updated, it wont be updated till the latest results\n     * are sent again. Regardless of the updation, the result will be returned.\n     * @param _data bytes data required to update the result\n     * @return result of the collection, its power and timestamp\n     */\n    function updateAndGetResult(bytes calldata _data) external returns (uint256, int8, uint256);\n\n    /**\n     * @dev using the hash of collection name, clients can query the result of that collection\n     * @param _name bytes32 hash of the collection name\n     * @return result of the collection and its power\n     */\n    function getResult(bytes32 _name) external view returns (uint256, int8, uint256);\n\n    /**\n     * @dev validates the result based on the provided data and returns the validity\n     * @param _data bytes data required to validate the result\n     * @return validity of the result\n     */\n    function validateResult(bytes calldata _data) external view returns (bool, uint256, int8, uint256);\n}"
+    }
+  },
+  "settings": {
+    "remappings": [
+      "forge-std/=lib/forge-std/src/"
+    ],
+    "optimizer": {
+      "enabled": true,
+      "mode": "3",
+      "details": null,
+      "fallbackToOptimizingForSize": false,
+      "disableSystemRequestMemoization": false
+    },
+    "outputSelection": {
+      "*": {
+        "": [
+          "metadata"
+        ],
+        "*": [
+          "abi",
+          "evm.methodIdentifiers"
+        ]
+      }
+    },
+    "libraries": {},
+    "isSystem": false,
+    "forceEvmla": false,
+    "areLibrariesMissing": false
+  }
+}
